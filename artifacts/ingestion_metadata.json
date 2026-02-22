@@ -1,0 +1,23 @@
+{
+    "dataset": "Adult",
+    "source": "UCI ML Repository",
+    "n_rows": 48842,
+    "n_features": 14,
+    "feature_names": [
+        "age",
+        "workclass",
+        "fnlwgt",
+        "education",
+        "education-num",
+        "marital-status",
+        "occupation",
+        "relationship",
+        "race",
+        "sex",
+        "capital-gain",
+        "capital-loss",
+        "hours-per-week",
+        "native-country"
+    ],
+    "target_distribution": {
+        
