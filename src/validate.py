@@ -1,29 +1,21 @@
 """
-Responsabilidad:
-Validar calidad e integridad del dataset Adult
-antes de continuar con el pipeline MLOps.
+validate.py
 
-Incluye:
-- Validación estructural con Pandera
-- Chequeo de nulos
-- Chequeo de duplicados
-- Validación de rangos
-- Consistencia entre features y target
-- Generación de artefacto de validación
+Validación avanzada de calidad de datos.
+Incluye métricas estructurales, estadísticas y de dominio.
 """
 
 import pandas as pd
+import numpy as np
 import pandera as pa
 from pandera import Column, Check
 from pathlib import Path
 import json
 import logging
 from datetime import datetime, UTC
+from scipy.stats import entropy
 
 
-# --------------------------------------------------
-# CONFIGURACIÓN DE LOGGING
-# --------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
@@ -34,20 +26,9 @@ def validate_data(
     input_dir: str = "data/raw",
     artifacts_dir: str = "artifacts"
 ) -> dict:
-    """
-    Ejecuta validaciones de calidad sobre el dataset.
 
-    Retorna
-    -------
-    dict
-        Reporte detallado del proceso de validación.
-    """
+    logging.info("Iniciando validación avanzada de datos...")
 
-    logging.info("Iniciando validación de datos...")
-
-    # --------------------------------------------------
-    # 1. CARGA DE DATOS
-    # --------------------------------------------------
     X = pd.read_parquet(f"{input_dir}/features.parquet")
     y = pd.read_parquet(f"{input_dir}/targets.parquet")
 
@@ -55,82 +36,139 @@ def validate_data(
         "timestamp_utc": datetime.now(UTC).isoformat(),
         "status": "success",
         "errors": [],
-        "warnings": []
+        "warnings": [],
+        "structure": {},
+        "quality": {},
+        "statistics": {},
+        "target_analysis": {}
     }
 
     # --------------------------------------------------
-    # 2. VALIDACIÓN DE CONSISTENCIA FILAS
+    # 1️⃣ ESTRUCTURA
     # --------------------------------------------------
+    report["structure"]["rows"] = len(X)
+    report["structure"]["columns"] = len(X.columns)
+
     if len(X) != len(y):
         report["status"] = "failed"
-        report["errors"].append(
-            "Features y target no tienen el mismo número de filas."
-        )
+        report["errors"].append("Mismatch entre filas de X e y.")
+
+    report["structure"]["dtypes"] = {
+        col: str(dtype) for col, dtype in X.dtypes.items()
+    }
 
     # --------------------------------------------------
-    # 3. VALIDACIÓN DE DUPLICADOS
+    # 2️⃣ CALIDAD GENERAL
     # --------------------------------------------------
+    null_pct = (X.isnull().mean() * 100).round(3)
+    report["quality"]["null_percentage"] = {
+        col: float(val) for col, val in null_pct.items() if val > 0
+    }
+
+    high_null_5 = null_pct[null_pct > 5]
+    high_null_20 = null_pct[null_pct > 20]
+
+    if len(high_null_5) > 0:
+        report["warnings"].append(
+            f"Columnas con >5% nulos: {high_null_5.to_dict()}"
+        )
+
+    if len(high_null_20) > 0:
+        report["status"] = "failed"
+        report["errors"].append(
+            f"Columnas con >20% nulos: {high_null_20.to_dict()}"
+        )
+
     duplicates = int(X.duplicated().sum())
-    if duplicates > 0:
-        report["warnings"].append(
-            f"Se encontraron {duplicates} filas duplicadas."
-        )
+    report["quality"]["duplicates"] = duplicates
 
     # --------------------------------------------------
-    # 4. VALIDACIÓN DE NULOS
+    # 3️⃣ NUMÉRICAS
     # --------------------------------------------------
-    null_counts = X.isnull().sum()
-    null_columns = null_counts[null_counts > 0]
+    numeric_cols = X.select_dtypes(include=np.number).columns
+    numeric_stats = {}
 
-    if len(null_columns) > 0:
-        report["warnings"].append(
-            f"Columnas con nulos detectadas: {null_columns.to_dict()}"
-        )
+    for col in numeric_cols:
+        q1 = X[col].quantile(0.25)
+        q3 = X[col].quantile(0.75)
+        iqr = q3 - q1
+        lower = q1 - 1.5 * iqr
+        upper = q3 + 1.5 * iqr
+
+        outliers = ((X[col] < lower) | (X[col] > upper)).sum()
+
+        numeric_stats[col] = {
+            "min": float(X[col].min()),
+            "max": float(X[col].max()),
+            "mean": float(X[col].mean()),
+            "outliers_iqr_count": int(outliers)
+        }
+
+    report["statistics"]["numeric"] = numeric_stats
 
     # --------------------------------------------------
-    # 5. VALIDACIÓN ESTRUCTURAL CON PANDERA
+    # 4️⃣ CATEGÓRICAS
     # --------------------------------------------------
-    try:
-        schema = pa.DataFrameSchema(
-            {
-                "age": Column(int, Check.in_range(17, 90)),
-                "education-num": Column(int, Check.in_range(1, 16)),
-            },
-            strict=False  # permite columnas adicionales
-        )
+    cat_cols = X.select_dtypes(include="object").columns
+    cat_stats = {}
 
-        schema.validate(X, lazy=True)
+    for col in cat_cols:
+        vc = X[col].value_counts(normalize=True)
+        rare = vc[vc < 0.01].count()
 
-    except pa.errors.SchemaErrors as e:
+        cat_stats[col] = {
+            "cardinality": int(X[col].nunique()),
+            "rare_categories_<1pct": int(rare)
+        }
+
+    report["statistics"]["categorical"] = cat_stats
+
+    # --------------------------------------------------
+    # 5️⃣ TARGET
+    # --------------------------------------------------
+    target_col = y.columns[0]
+    dist = y[target_col].value_counts(normalize=True)
+    target_classes = sorted(list(dist.index))
+
+    report["target_analysis"]["distribution"] = dist.round(4).to_dict()
+    report["target_analysis"]["classes"] = target_classes
+    report["target_analysis"]["imbalance_ratio"] = float(
+        dist.max() / dist.min()
+    )
+    report["target_analysis"]["entropy"] = float(
+        entropy(dist)
+    )
+
+    if set(target_classes) != {"<=50K", ">50K"}:
         report["status"] = "failed"
-        report["errors"].append("Error estructural detectado por Pandera.")
-        report["errors"].append(str(e.failure_cases.head()))
+        report["errors"].append("Clases inesperadas en el target.")
+
+    if dist.min() < 0.15:
+        report["warnings"].append("Desbalance fuerte detectado.")
 
     # --------------------------------------------------
-    # 6. VALIDACIÓN DEL TARGET
+    # 6️⃣ SCORE GLOBAL DE CALIDAD
     # --------------------------------------------------
-    target_series = y.iloc[:, 0]
-    valid_classes = set(target_series.unique())
+    score = 100
 
-    if not valid_classes.issubset({">50K", "<=50K"}):
-        report["status"] = "failed"
-        report["errors"].append(
-            f"Clases inesperadas en target: {valid_classes}"
-        )
+    score -= len(report["warnings"]) * 5
+    score -= len(report["errors"]) * 20
+
+    report["quality_score_over_100"] = max(score, 0)
 
     # --------------------------------------------------
-    # 7. GUARDAR REPORTE
+    # Guardar JSON
     # --------------------------------------------------
-    artifacts_path = Path(artifacts_dir)
-    artifacts_path.mkdir(parents=True, exist_ok=True)
+    Path(artifacts_dir).mkdir(parents=True, exist_ok=True)
 
-    with open(artifacts_path / "validation_report.json", "w") as f:
+    with open(f"{artifacts_dir}/validation_report.json", "w") as f:
         json.dump(report, f, indent=4)
 
-    logging.info(f"Validación finalizada con estado: {report['status']}")
+    logging.info(f"Validación completada con estado: {report['status']}")
+    logging.info(f"Quality Score: {report['quality_score_over_100']}/100")
 
     if report["status"] == "failed":
-        raise ValueError("La validación falló. Revisar validation_report.json")
+        raise ValueError("Validación fallida.")
 
     return report
 

@@ -1,0 +1,16 @@
+{
+    "timestamp_utc": "2026-02-23T21:35:06.065828+00:00",
+    "status": "success",
+    "rows": 48842,
+    "columns": 15,
+    "duplicates_detected": 0,
+    "null_values_per_column": {
+        "workclass": 963,
+        "occupation": 966,
+        "native-country": 274
+    },
+    "target_classes": [
+        "<=50K",
+        ">50K"
+    ]
+}

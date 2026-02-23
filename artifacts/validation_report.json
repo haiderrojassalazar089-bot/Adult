@@ -1,11 +1,128 @@
 {
-    "timestamp_utc": "2026-02-23T20:46:50.089151+00:00",
-    "status": "failed",
-    "errors": [
-        "Clases inesperadas en target: {'<=50K', '<=50K.', '>50K', '>50K.'}"
-    ],
-    "warnings": [
-        "Se encontraron 53 filas duplicadas.",
-        "Columnas con nulos detectadas: {'workclass': 963, 'occupation': 966, 'native-country': 274}"
-    ]
+    "timestamp_utc": "2026-02-23T22:00:13.477374+00:00",
+    "status": "success",
+    "errors": [],
+    "warnings": [],
+    "structure": {
+        "rows": 48842,
+        "columns": 15,
+        "dtypes": {
+            "Unnamed: 0": "int64",
+            "age": "int64",
+            "workclass": "object",
+            "fnlwgt": "int64",
+            "education": "object",
+            "education-num": "int64",
+            "marital-status": "object",
+            "occupation": "object",
+            "relationship": "object",
+            "race": "object",
+            "sex": "object",
+            "capital-gain": "int64",
+            "capital-loss": "int64",
+            "hours-per-week": "int64",
+            "native-country": "object"
+        }
+    },
+    "quality": {
+        "null_percentage": {
+            "workclass": 1.972,
+            "occupation": 1.978,
+            "native-country": 0.561
+        },
+        "duplicates": 0
+    },
+    "statistics": {
+        "numeric": {
+            "Unnamed: 0": {
+                "min": 0.0,
+                "max": 48841.0,
+                "mean": 24420.5,
+                "outliers_iqr_count": 0
+            },
+            "age": {
+                "min": 17.0,
+                "max": 90.0,
+                "mean": 38.64358543876172,
+                "outliers_iqr_count": 216
+            },
+            "fnlwgt": {
+                "min": 12285.0,
+                "max": 1490400.0,
+                "mean": 189664.13459727284,
+                "outliers_iqr_count": 1453
+            },
+            "education-num": {
+                "min": 1.0,
+                "max": 16.0,
+                "mean": 10.078088530363212,
+                "outliers_iqr_count": 1794
+            },
+            "capital-gain": {
+                "min": 0.0,
+                "max": 99999.0,
+                "mean": 1079.0676262233324,
+                "outliers_iqr_count": 4035
+            },
+            "capital-loss": {
+                "min": 0.0,
+                "max": 4356.0,
+                "mean": 87.50231358257237,
+                "outliers_iqr_count": 2282
+            },
+            "hours-per-week": {
+                "min": 1.0,
+                "max": 99.0,
+                "mean": 40.422382375824085,
+                "outliers_iqr_count": 13496
+            }
+        },
+        "categorical": {
+            "workclass": {
+                "cardinality": 9,
+                "rare_categories_<1pct": 2
+            },
+            "education": {
+                "cardinality": 16,
+                "rare_categories_<1pct": 2
+            },
+            "marital-status": {
+                "cardinality": 7,
+                "rare_categories_<1pct": 1
+            },
+            "occupation": {
+                "cardinality": 15,
+                "rare_categories_<1pct": 2
+            },
+            "relationship": {
+                "cardinality": 6,
+                "rare_categories_<1pct": 0
+            },
+            "race": {
+                "cardinality": 5,
+                "rare_categories_<1pct": 2
+            },
+            "sex": {
+                "cardinality": 2,
+                "rare_categories_<1pct": 0
+            },
+            "native-country": {
+                "cardinality": 42,
+                "rare_categories_<1pct": 39
+            }
+        }
+    },
+    "target_analysis": {
+        "distribution": {
+            "<=50K": 0.7607,
+            ">50K": 0.2393
+        },
+        "classes": [
+            "<=50K",
+            ">50K"
+        ],
+        "imbalance_ratio": 3.1791734405749983,
+        "entropy": 0.5502506190603338
+    },
+    "quality_score_over_100": 100
 }
