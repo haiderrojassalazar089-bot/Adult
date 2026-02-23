@@ -13,12 +13,12 @@ from ucimlrepo import fetch_ucirepo
 from pathlib import Path
 import logging
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 
 
+# --------------------------------------------------
 # CONFIGURACIÓN DE LOGGING
-
-# Permite monitorear ejecución y errores.
+# --------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
@@ -49,9 +49,9 @@ def ingest_adult(
 
     logging.info("Iniciando ingesta del dataset Adult...")
 
-    
+    # --------------------------------------------------
     # 1. DESCARGA DEL DATASET
-    
+    # --------------------------------------------------
     try:
         adult = fetch_ucirepo(id=2)
     except Exception as e:
@@ -63,43 +63,53 @@ def ingest_adult(
 
     logging.info(f"Dataset descargado con {len(X)} filas.")
 
-    
+    # --------------------------------------------------
     # 2. VALIDACIÓN BÁSICA DE INTEGRIDAD
-    
+    # --------------------------------------------------
     if len(X) != len(y):
         raise ValueError(
             "Las features y el target no tienen el mismo número de filas."
         )
 
-    
+    # --------------------------------------------------
     # 3. CREACIÓN DE DIRECTORIOS
-    
+    # --------------------------------------------------
     raw_path = Path(output_dir)
     raw_path.mkdir(parents=True, exist_ok=True)
 
     artifacts_path = Path(artifacts_dir)
     artifacts_path.mkdir(parents=True, exist_ok=True)
 
-    
+    # --------------------------------------------------
     # 4. ALMACENAMIENTO EN FORMATO PARQUET
-    
-    # Parquet es más eficiente que CSV y es estándar en ingeniería de datos.
+    # --------------------------------------------------
     X.to_parquet(raw_path / "features.parquet", index=False)
     y.to_parquet(raw_path / "targets.parquet", index=False)
 
     logging.info("Datos guardados en formato Parquet.")
 
-    
+    # --------------------------------------------------
     # 5. GENERACIÓN DE METADATA COMO ARTEFACTO
-    
+    # --------------------------------------------------
+
+    # Convertimos target a Serie (evita problemas JSON)
+    target_series = y.iloc[:, 0]
+
+    target_distribution = (
+        target_series.value_counts()
+        .rename_axis("class")
+        .reset_index(name="count")
+        .to_dict(orient="records")
+    )
+
     metadata = {
         "dataset": "Adult",
         "source": "UCI ML Repository",
-        "n_rows": len(X),
-        "n_features": X.shape[1],
-        "feature_names": list(X.columns),
-        "target_distribution": y.value_counts().to_dict(),
-        "ingestion_timestamp_utc": datetime.utcnow().isoformat()
+        "n_rows": int(len(X)),
+        "n_features": int(X.shape[1]),
+        "feature_names": list(map(str, X.columns)),
+        "target_distribution": target_distribution,
+        "ingestion_timestamp_utc": datetime.now(UTC).isoformat()
     }
 
     with open(artifacts_path / "ingestion_metadata.json", "w") as f:
