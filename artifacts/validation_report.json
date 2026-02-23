@@ -1,0 +1,11 @@
+{
+    "timestamp_utc": "2026-02-23T20:46:50.089151+00:00",
+    "status": "failed",
+    "errors": [
+        "Clases inesperadas en target: {'<=50K', '<=50K.', '>50K', '>50K.'}"
+    ],
+    "warnings": [
+        "Se encontraron 53 filas duplicadas.",
+        "Columnas con nulos detectadas: {'workclass': 963, 'occupation': 966, 'native-country': 274}"
+    ]
+}

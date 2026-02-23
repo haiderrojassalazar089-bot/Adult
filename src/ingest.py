@@ -1,124 +1,74 @@
 """
-Responsabilidad:
-Descargar el dataset Adult desde UCI,
-almacenarlo en formato Parquet
-y generar metadata como artefacto reproducible.
+Módulo: ingest.py
 
-Este módulo representa la etapa de INGESTA
-dentro del pipeline MLOps.
+Responsabilidad:
+Leer features.csv y targets.csv,
+realizar limpieza básica,
+normalizar el target,
+y convertir a formato parquet.
 """
 
 import pandas as pd
-from ucimlrepo import fetch_ucirepo
 from pathlib import Path
 import logging
-import json
-from datetime import datetime, UTC
 
 
-# --------------------------------------------------
-# CONFIGURACIÓN DE LOGGING
-# --------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 
-def ingest_adult(
-    output_dir: str = "data/raw",
-    artifacts_dir: str = "artifacts"
-) -> dict:
-    """
-    Descarga el dataset Adult desde UCI ML Repository,
-    guarda features y targets en formato Parquet
-    y genera un archivo de metadata como artefacto.
+def ingest_data(
+    input_dir: str = "data/raw",
+    output_dir: str = "data/raw"
+) -> None:
 
-    Parámetros
-    ----------
-    output_dir : str
-        Directorio donde se almacenarán los datos crudos.
-    artifacts_dir : str
-        Directorio donde se guardará metadata del proceso.
+    logging.info("Iniciando proceso de ingesta desde CSV...")
 
-    Retorna
-    -------
-    dict
-        Diccionario con información resumida del dataset.
-    """
+    input_path = Path(input_dir)
+    output_path = Path(output_dir)
 
-    logging.info("Iniciando ingesta del dataset Adult...")
+    features_csv = input_path / "features.csv"
+    targets_csv = input_path / "targets.csv"
 
-    # --------------------------------------------------
-    # 1. DESCARGA DEL DATASET
-    # --------------------------------------------------
-    try:
-        adult = fetch_ucirepo(id=2)
-    except Exception as e:
-        logging.error("Error al descargar el dataset.")
-        raise e
-
-    X = adult.data.features.copy()
-    y = adult.data.targets.copy()
-
-    logging.info(f"Dataset descargado con {len(X)} filas.")
-
-    # --------------------------------------------------
-    # 2. VALIDACIÓN BÁSICA DE INTEGRIDAD
-    # --------------------------------------------------
-    if len(X) != len(y):
-        raise ValueError(
-            "Las features y el target no tienen el mismo número de filas."
+    if not features_csv.exists() or not targets_csv.exists():
+        raise FileNotFoundError(
+            "No se encontraron features.csv o targets.csv en data/raw"
         )
 
-    # --------------------------------------------------
-    # 3. CREACIÓN DE DIRECTORIOS
-    # --------------------------------------------------
-    raw_path = Path(output_dir)
-    raw_path.mkdir(parents=True, exist_ok=True)
+    # ----------------------------
+    # 1. Cargar CSV
+    # ----------------------------
+    X = pd.read_csv(features_csv)
+    y = pd.read_csv(targets_csv)
 
-    artifacts_path = Path(artifacts_dir)
-    artifacts_path.mkdir(parents=True, exist_ok=True)
+    logging.info(f"Features shape: {X.shape}")
+    logging.info(f"Targets shape: {y.shape}")
 
-    # --------------------------------------------------
-    # 4. ALMACENAMIENTO EN FORMATO PARQUET
-    # --------------------------------------------------
-    X.to_parquet(raw_path / "features.parquet", index=False)
-    y.to_parquet(raw_path / "targets.parquet", index=False)
+    # ----------------------------
+    # 2. Normalizar columnas tipo string
+    # ----------------------------
+    for col in X.select_dtypes(include="object").columns:
+        X[col] = X[col].str.strip()
 
-    logging.info("Datos guardados en formato Parquet.")
+    target_col = y.columns[0]
 
-    # --------------------------------------------------
-    # 5. GENERACIÓN DE METADATA COMO ARTEFACTO
-    # --------------------------------------------------
-
-    # Convertimos target a Serie (evita problemas JSON)
-    target_series = y.iloc[:, 0]
-
-    target_distribution = (
-        target_series.value_counts()
-        .rename_axis("class")
-        .reset_index(name="count")
-        .to_dict(orient="records")
+    y[target_col] = (
+        y[target_col]
+        .astype(str)
+        .str.strip()
+        .str.replace(".", "", regex=False)
     )
 
-    metadata = {
-        "dataset": "Adult",
-        "source": "UCI ML Repository",
-        "n_rows": int(len(X)),
-        "n_features": int(X.shape[1]),
-        "feature_names": list(map(str, X.columns)),
-        "target_distribution": target_distribution,
-        "ingestion_timestamp_utc": datetime.now(UTC).isoformat()
-    }
+    # ----------------------------
+    # 3. Guardar como Parquet
+    # ----------------------------
+    X.to_parquet(output_path / "features.parquet", index=False)
+    y.to_parquet(output_path / "targets.parquet", index=False)
 
-    with open(artifacts_path / "ingestion_metadata.json", "w") as f:
-        json.dump(metadata, f, indent=4)
-
-    logging.info("Metadata de ingesta generada correctamente.")
-
-    return metadata
+    logging.info("Archivos parquet generados correctamente.")
 
 
 if __name__ == "__main__":
-    ingest_adult()
+    ingest_data()
