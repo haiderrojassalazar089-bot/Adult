@@ -1,10 +1,10 @@
 {
-    "timestamp_utc": "2026-02-23T22:10:39.879594+00:00",
+    "timestamp_utc": "2026-02-28T01:22:08.080313+00:00",
     "n_rows": 48842,
-    "n_original_features": 15,
-    "n_numeric_features": 7,
+    "n_original_features": 14,
+    "n_numeric_features": 6,
     "n_categorical_features": 8,
-    "n_final_features_after_encoding": 112,
+    "n_final_features_after_encoding": 111,
     "one_hot_generated_features": 105,
     "transformations": {
         "numeric": {
