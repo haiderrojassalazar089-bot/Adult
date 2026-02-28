@@ -3,6 +3,8 @@ name = "adult-mlops-project"
 version = "0.1.0"
 description = "Pipeline MLOps reproducible con dataset Adult"
 authors = ["Ximena Arias"]
+package-mode = false
+
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -32,9 +34,15 @@ dvc = "3.48.4"
 python-dotenv = "1.0.1"
 setuptools = "^82.0.0"
 
+# API 
+fastapi = "^0.110"
+uvicorn = "^0.29"
+
+
 [tool.poetry.group.dev.dependencies]
 pytest = "8.1.1"
 black = "24.3.0"
+
 
 [build-system]
 requires = ["poetry-core"]

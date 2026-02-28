@@ -1,0 +1,25 @@
+[
+    {
+        "input": {
+            "age": 37,
+            "workclass": "Private",
+            "fnlwgt": 284582,
+            "education": "HS-grad",
+            "education-num": 9,
+            "marital-status": "Married-civ-spouse",
+            "occupation": "Exec-managerial",
+            "relationship": "Husband",
+            "race": "White",
+            "sex": "Male",
+            "capital-gain": 0,
+            "capital-loss": 0,
+            "hours-per-week": 40,
+            "native-country": "United-States"
+        },
+        "output": {
+            "prediction": ">50K",
+            "probability": 0.660760639863736,
+            "timestamp_utc": "2026-02-28T04:00:11.248245+00:00"
+        }
+    }
+]
