@@ -45,13 +45,18 @@ def train_model(
     random_state: int = 42
 ):
 
-    logging.info("🚀 Iniciando entrenamiento del modelo (nivel pipeline MLOps)...")
+    logging.info("Iniciando entrenamiento del modelo (nivel pipeline MLOps)...")
 
     # --------------------------------------------------
     # 1️⃣ CARGA DE DATOS
     # --------------------------------------------------
     X = pd.read_parquet(f"{data_dir}/features.parquet")
     y = pd.read_parquet(f"{data_dir}/targets.parquet")
+
+    # Guardar dataset base para monitoreo de drift
+    Path(artifacts_dir).mkdir(parents=True, exist_ok=True)
+    X.to_parquet(f"{artifacts_dir}/train_reference.parquet")
+    logging.info("Dataset de referencia guardado para monitoreo.")
 
     target_col = y.columns[0]
     y = y[target_col]
