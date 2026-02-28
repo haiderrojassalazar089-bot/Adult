@@ -1,0 +1,20 @@
+{
+    "timestamp_utc": "2026-02-28T01:22:08.080313+00:00",
+    "n_rows": 48842,
+    "n_original_features": 14,
+    "n_numeric_features": 6,
+    "n_categorical_features": 8,
+    "n_final_features_after_encoding": 111,
+    "one_hot_generated_features": 105,
+    "transformations": {
+        "numeric": {
+            "imputation": "median",
+            "scaling": "standard_scaler"
+        },
+        "categorical": {
+            "imputation": "most_frequent",
+            "encoding": "one_hot",
+            "handle_unknown": "ignore"
+        }
+    }
+}

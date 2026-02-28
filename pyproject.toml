@@ -30,6 +30,7 @@ dvc = "3.48.4"
 
 # Utilities
 python-dotenv = "1.0.1"
+setuptools = "^82.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "8.1.1"
